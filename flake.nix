@@ -46,12 +46,17 @@
             dockerTools.usrBinEnv
             dockerTools.binSh
             dockerTools.caCertificates
-            dockerTools.fakeNss
             busybox
             kubectl
             curl
             awscli2
           ];
+          fakeRootCommands = ''
+            ${pkgs.dockerTools.shadowSetup}
+            mkdir -p /root
+            chmod 0550 /root
+          '';
+          enableFakechroot = true;
           config = {
             Cmd = [ "${pkgs.dockerTools.binSh}/bin/sh" ];
           };
