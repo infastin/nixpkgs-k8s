@@ -20,6 +20,11 @@
               hash = "sha256-L+x1a9wttu2OBY5T6AY8k91ystu0uZAGd3px4oNVptM=";
             };
           });
+
+          tmpDir = prev.runCommand "tmp" { } ''
+            mkdir $out
+            mkdir -m 1777 $out/tmp
+          '';
         };
       };
     } // flake-utils.lib.eachDefaultSystem (system:
@@ -32,13 +37,7 @@
         };
 
       in {
-        packages.container = let
-          tmpDir = pkgs.runCommand "tmp" { } ''
-            mkdir $out
-            mkdir -m 1777 $out/tmp
-          '';
-        in
-        pkgs.dockerTools.buildLayeredImage {
+        packages.default = pkgs.dockerTools.buildLayeredImage {
           name = "ghcr.io/infastin/nixpkgs-k8s";
           tag = kubectlVersion;
           created = "now";
