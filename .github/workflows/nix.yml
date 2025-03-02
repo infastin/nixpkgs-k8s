@@ -62,13 +62,18 @@ jobs:
           docker push ${IMAGE_NAME}:latest-linux-amd64
 
   build-and-push-arm64:
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - uses: cachix/install-nix-action@v27
         with:
@@ -86,7 +91,7 @@ jobs:
           set -xeuo pipefail
           
           # Build arm64 image
-          nix build
+          nix build --system aarch64-linux
           
           # Load arm64 image and extract image tag
           LOAD_OUTPUT=$(mktemp)
