@@ -40,7 +40,7 @@
         in
         pkgs.dockerTools.buildLayeredImage {
           name = "ghcr.io/infastin/nixpkgs-k8s";
-          tag = "latest";
+          tag = kubectlVersion;
           created = "now";
           contents = with pkgs; [
             tmpDir
