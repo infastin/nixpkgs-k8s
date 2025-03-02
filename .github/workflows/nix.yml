@@ -16,6 +16,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,18 +51,56 @@ jobs:
           # Runner may run out of space in tmpfs
           unset TMPDIR
           
-          # Build container
+          # Build amd64 image
           nix build
           
-          # Load container and extract image tag
+          # Load amd64 image and extract image tag
           LOAD_OUTPUT=$(mktemp)
-          docker load < result | tee $LOAD_OUTPUT
+          docker load < result | tee ${LOAD_OUTPUT}
           read VERSION MAJOR_MINOR \
-            <<<$(sed -E "s|Loaded image: $IMAGE_NAME:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" $LOAD_OUTPUT)
+            <<<$(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
 
-          # Tag image
-          docker tag $IMAGE_NAME:$VERSION $IMAGE_NAME:$MAJOR_MINOR
-          docker tag $IMAGE_NAME:$VERSION $IMAGE_NAME:latest
+          # Save VERSION and MAJOR_MINOR
+          echo "VERSION=${VERSION}" >> ${GITHUB_ENV}
+          echo "MAJOR_MINOR=${MAJOR_MINOR}" >> ${GITHUB_ENV}
+
+          # Tag amd64 image
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-amd64
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-amd64
+
+          # Build arm64 image
+          nix build --system aarch64-linux
+          docker load < result
+
+          # Tag arm64 image
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-arm64
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-arm64
           
-          # Push
+          # Remove image with VERSION tag
+          docker rmi ${IMAGE_NAME}:${VERSION}
+
+          # Push all tags
           docker push -a $IMAGE_NAME
+
+      - name: Create and push latest manifest image
+        uses: Noelware/docker-manifest-action@master
+        with:
+            inputs: ${{ env.IMAGE_NAME }}:latest
+            images: ${{ env.IMAGE_NAME }}:latest-linux-amd64, ${{ env.IMAGE_NAME }}:latest-linux-arm64
+            push: true
+
+      - name: Create and push ${{ env.VERSION }} manifest image
+        uses: Noelware/docker-manifest-action@master
+        with:
+            inputs: ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            images: ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-linux-amd64, ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-linux-arm64
+            push: true
+
+      - name: Create and push ${{ env.MAJOR_MINOR }} manifest image
+        uses: Noelware/docker-manifest-action@master
+        with:
+            inputs: ${{ env.IMAGE_NAME }}:${{ env.MAJOR_MINOR }}
+            images: ${{ env.IMAGE_NAME }}:${{ env.MAJOR_MINOR }}-linux-amd64, ${{ env.IMAGE_NAME }}:${{ env.MAJOR_MINOR }}-linux-arm64
+            push: true
