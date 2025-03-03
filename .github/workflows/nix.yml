@@ -20,8 +20,8 @@ jobs:
       contents: read
       packages: write
     outputs:
-      version: ${{ steps.save-info.outputs.version }}
-      major-minor: ${{ steps.save-info.outputs.major-minor }}
+      version: ${{ steps.build-and-push.outputs.version }}
+      major-minor: ${{ steps.build-and-push.outputs.major-minor }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,28 +37,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
-        run: nix build
-
-      - name: Load
+      - name: Build and push
+        id: build-and-push
         run: | # bash
+          set -xeuo pipefail
+          
+          # Build amd64 image
+          nix build
+
+          # Load image
           LOAD_OUTPUT=$(mktemp)
           docker load < result | tee ${LOAD_OUTPUT}
           read VERSION MAJOR_MINOR \
             <<<$(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
 
-      - name: Save info
-        id: save-info
-        run: | # bash
+          # Save VERSION and MAJOR_MINOR
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
-      - name: Push
-        run: | # bash
+          # Tag image
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-amd64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-amd64
 
+          # Push images
           docker push ${IMAGE_NAME}:${VERSION}-linux-amd64
           docker push ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
           docker push ${IMAGE_NAME}:latest-linux-amd64
@@ -69,8 +71,8 @@ jobs:
       contents: read
       packages: write
     outputs:
-      version: ${{ steps.save-info.outputs.version }}
-      major-minor: ${{ steps.save-info.outputs.major-minor }}
+      version: ${{ steps.build-and-push.outputs.version }}
+      major-minor: ${{ steps.build-and-push.outputs.major-minor }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,25 +88,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
-        run: nix build
-
-      - name: Load
+      - name: Build and push
+        id: build-and-push
         run: | # bash
+          set -xeuo pipefail
+          
+          # Build arm64 image
+          nix build
+
+          # Load image
           LOAD_OUTPUT=$(mktemp)
           docker load < result | tee ${LOAD_OUTPUT}
           read VERSION MAJOR_MINOR \
             <<<$(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
 
-      - name: Save info
-        id: save-info
-        run: | # bash
+          # Save VERSION and MAJOR_MINOR
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
-      - name: Push
-        run: | # bash
-          # Tag arm64 image
+          # Tag image
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-arm64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-arm64
