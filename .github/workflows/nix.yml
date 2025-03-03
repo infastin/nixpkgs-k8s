@@ -2,10 +2,10 @@ name: Nix
 
 on:
   push:
-    branches: 
+    branches:
       - master
   pull_request:
-    branches: 
+    branches:
       - master
   workflow_dispatch:
 
@@ -30,7 +30,7 @@ jobs:
 
       - uses: nix-community/cache-nix-action@v6
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles("**/*.nix", "**/flake.lock") }}
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1073741824
           purge: true
@@ -57,12 +57,12 @@ jobs:
 
       - name: Save info
         id: save-info
-        run: | #bash
+        run: | # bash
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
       - name: Push
-        run: | #bash
+        run: | # bash
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-amd64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-amd64
@@ -87,7 +87,7 @@ jobs:
 
       - uses: nix-community/cache-nix-action@v6
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles("**/*.nix", "**/flake.lock") }}
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1073741824
           purge: true
@@ -114,12 +114,12 @@ jobs:
 
       - name: Save info
         id: save-info
-        run: | #bash
+        run: | # bash
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
       - name: Push
-        run: | #bash
+        run: | # bash
           # Tag arm64 image
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-arm64
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
@@ -144,7 +144,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-    
+
       - name: Create and push latest manifest image
         uses: Noelware/docker-manifest-action@master
         with:
