@@ -48,8 +48,8 @@ jobs:
           # Load image
           LOAD_OUTPUT=$(mktemp)
           docker load < result | tee ${LOAD_OUTPUT}
-          read VERSION MAJOR_MINOR \
-            <<<$(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
+          read -r VERSION MAJOR_MINOR \
+            < <(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
 
           # Save VERSION and MAJOR_MINOR
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
@@ -96,8 +96,8 @@ jobs:
           # Load image
           LOAD_OUTPUT=$(mktemp)
           docker load < result | tee ${LOAD_OUTPUT}
-          read VERSION MAJOR_MINOR \
-            <<<$(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
+          read -r VERSION MAJOR_MINOR \
+            < <(sed -E "s|Loaded image: ${IMAGE_NAME}:(([0-9]+\.[0-9]+)(\.[0-9])?)|\1 \2|" ${LOAD_OUTPUT})
 
           # Tag image
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-arm64
