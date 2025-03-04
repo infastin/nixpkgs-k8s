@@ -6,7 +6,7 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      kubernetesVersion = "1.31.6";
+      kubernetesVersion = "1.32.2";
     in
     {
       overlays = {
@@ -17,7 +17,7 @@
               owner = "kubernetes";
               repo = "kubernetes";
               rev = "v${kubernetesVersion}";
-              hash = "sha256-WWw2rzhChICTsUlm3OmcxP/oZdhuiziPg/YJfNb0hJA=";
+              hash = "sha256-pie36Y3zKGKvnCDHtjNHYox1b2xhy6w7MShkAfkDVrs=";
             };
           });
 
