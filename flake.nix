@@ -6,7 +6,7 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      kubectlVersion = "1.31.2";
+      kubectlVersion = "1.31.6";
     in
     {
       overlays = {
