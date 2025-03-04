@@ -6,18 +6,18 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      kubectlVersion = "1.31.6";
+      kubernetesVersion = "1.31.6";
     in
     {
       overlays = {
         default = final: prev: {
           kubectl = prev.kubectl.overrideAttrs (oldAttrs: {
-            version = kubectlVersion;
+            version = kubernetesVersion;
             src = prev.fetchFromGitHub {
               owner = "kubernetes";
               repo = "kubernetes";
-              rev = "v${kubectlVersion}";
-              hash = "sha256-L+x1a9wttu2OBY5T6AY8k91ystu0uZAGd3px4oNVptM=";
+              rev = "v${kubernetesVersion}";
+              hash = "sha256-WWw2rzhChICTsUlm3OmcxP/oZdhuiziPg/YJfNb0hJA=";
             };
           });
 
@@ -35,11 +35,10 @@
             self.overlays.default
           ];
         };
-
       in {
         packages.default = pkgs.dockerTools.buildLayeredImage {
           name = "ghcr.io/infastin/nixpkgs-k8s";
-          tag = kubectlVersion;
+          tag = kubernetesVersion;
           created = "now";
           contents = with pkgs; [
             tmpDir
