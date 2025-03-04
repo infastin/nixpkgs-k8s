@@ -39,7 +39,7 @@ jobs:
 
       - name: Build and push
         id: build-and-push
-        run: | # bash
+        run: |
           set -xeuo pipefail
           
           # Build amd64 image
@@ -87,7 +87,7 @@ jobs:
 
       - name: Build and push
         id: build-and-push
-        run: | # bash
+        run: |
           set -xeuo pipefail
           
           # Build arm64 image
