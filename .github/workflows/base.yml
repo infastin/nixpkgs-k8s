@@ -67,14 +67,14 @@ jobs:
           # Tag image
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
-          if [ '${{ inputs.latest }}' == 'true' ]; then
+          if \${{ inputs.latest }}; then
             docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
           fi
 
           # Push images
           docker push ${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
           docker push ${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
-          if [ '${{ inputs.latest }}' == 'true' ]; then
+          if \${{ inputs.latest }}; then
             docker push ${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
           fi
 
@@ -93,7 +93,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push latest manifest image
-        if: ${{ inputs.latest == 'true' }}
+        if: ${{ inputs.latest }}
         uses: Noelware/docker-manifest-action@master
         with:
             inputs: ${{ env.IMAGE_NAME }}:latest
