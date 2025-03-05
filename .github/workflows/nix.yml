@@ -21,6 +21,9 @@ jobs:
           - name: .#third
             latest: true
       fail-fast: true
+    permissions:
+      contents: read
+      packages: write
     uses: infastin/nixpkgs-k8s/.github/workflows/base.yml@master
     with:
       target: ${{ matrix.target.name }}
