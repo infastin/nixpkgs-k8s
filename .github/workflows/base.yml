@@ -1,0 +1,111 @@
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      latest:
+        required: true
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-and-push:
+    strategy:
+      fail-fast: true
+      matrix:
+        arch:
+          - label: ubuntu-24.04
+            tag: linux-amd64
+          - label: ubuntu-24.04-arm
+            tag: linux-arm64
+    runs-on: ${{ matrix.arch.label }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.build-and-push.outputs.version }}
+      major-minor: ${{ steps.build-and-push.outputs.major-minor }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build-and-push
+        run: |
+          set -xeuo pipefail
+
+          # TODO: use skopio when it becomes available in arm runner
+
+          # Build amd64 image
+          nix build '${{ inputs.target }}'
+
+          # Load image
+          LOAD_OUTPUT=$(mktemp)
+          docker load < result | tee ${LOAD_OUTPUT}
+          VERSION=$(sed -n -E "s|Loaded image: ${IMAGE_NAME//./\\.}:([a-z0-9.-]+)|\1|p" ${LOAD_OUTPUT})
+          MAJOR_MINOR=$(echo ${VERSION} | awk -F'[.-]' '{print $1 "." $2}')
+
+          # Save VERSION and MAJOR_MINOR
+          echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
+          echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
+
+          # Tag image
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
+          [ '${{ inputs.latest }}' == 'true' ] && docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
+
+          # Push images
+          docker push ${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
+          docker push ${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
+          [ '${{ inputs.latest }}' == 'true' ] && docker push ${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
+
+  push-manifest:
+    runs-on: ubuntu-24.04
+    needs:
+      - build-and-push
+    permissions:
+      packages: write
+    steps:
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push latest manifest image
+        if: ${{ github.event.inputs.latest == 'true' }}
+        uses: Noelware/docker-manifest-action@master
+        with:
+            inputs: ${{ env.IMAGE_NAME }}:latest
+            images: ${{ env.IMAGE_NAME }}:latest-linux-amd64,${{ env.IMAGE_NAME }}:latest-linux-arm64
+            push: true
+
+      - name: Create and push ${{ needs.build-and-push.outputs.version }} manifest image
+        uses: Noelware/docker-manifest-action@master
+        with:
+            inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}
+            images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}-linux-arm64
+            push: true
+
+      - name: Create and push ${{ needs.build-and-push.outputs.major-minor }} manifest image
+        uses: Noelware/docker-manifest-action@master
+        with:
+            inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}
+            images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}-linux-arm64
+            push: true

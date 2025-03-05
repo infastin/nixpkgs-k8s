@@ -9,138 +9,19 @@ on:
       - master
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-
 jobs:
-  build-and-push-amd64:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      version: ${{ steps.build-and-push.outputs.version }}
-      major-minor: ${{ steps.build-and-push.outputs.major-minor }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - uses: cachix/install-nix-action@v27
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        id: build-and-push
-        run: |
-          set -xeuo pipefail
-          
-          # Build amd64 image
-          nix build
-
-          # Load image
-          LOAD_OUTPUT=$(mktemp)
-          docker load < result | tee ${LOAD_OUTPUT}
-          VERSION=$(sed -n -E "s|Loaded image: ${IMAGE_NAME//./\\.}:([a-z0-9.-]+)|\1|p" ${LOAD_OUTPUT})
-          MAJOR_MINOR=$(echo ${VERSION} | awk -F'[.-]' '{print $1 "." $2}')
-
-          # Save VERSION and MAJOR_MINOR
-          echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
-          echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
-
-          # Tag image
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-amd64
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-amd64
-
-          # Push images
-          docker push ${IMAGE_NAME}:${VERSION}-linux-amd64
-          docker push ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
-          docker push ${IMAGE_NAME}:latest-linux-amd64
-
-  build-and-push-arm64:
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - uses: cachix/install-nix-action@v27
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        id: build-and-push
-        run: |
-          set -xeuo pipefail
-          
-          # Build arm64 image
-          nix build
-
-          # Load image
-          LOAD_OUTPUT=$(mktemp)
-          docker load < result | tee ${LOAD_OUTPUT}
-          VERSION=$(sed -n -E "s|Loaded image: ${IMAGE_NAME//./\\.}:([a-z0-9.-]+)|\1|p" ${LOAD_OUTPUT})
-          MAJOR_MINOR=$(echo ${VERSION} | awk -F'[.-]' '{print $1 "." $2}')
-
-          # Tag image
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-arm64
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-arm64
-
-          # Push images
-          docker push ${IMAGE_NAME}:${VERSION}-linux-arm64
-          docker push ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
-          docker push ${IMAGE_NAME}:latest-linux-arm64
-
-  push-manifest:
-    runs-on: ubuntu-24.04
-    needs:
-      - build-and-push-amd64
-      - build-and-push-arm64
-    permissions:
-      packages: write
-    steps:
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create and push latest manifest image
-        uses: Noelware/docker-manifest-action@master
-        with:
-            inputs: ${{ env.IMAGE_NAME }}:latest
-            images: ${{ env.IMAGE_NAME }}:latest-linux-amd64,${{ env.IMAGE_NAME }}:latest-linux-arm64
-            push: true
-
-      - name: Create and push ${{ needs.build-and-push-amd64.outputs.version }} manifest image
-        uses: Noelware/docker-manifest-action@master
-        with:
-            inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-amd64.outputs.version }}
-            images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-amd64.outputs.version }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push-amd64.outputs.version }}-linux-arm64
-            push: true
-
-      - name: Create and push ${{ needs.build-and-push-amd64.outputs.major-minor }} manifest image
-        uses: Noelware/docker-manifest-action@master
-        with:
-            inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-amd64.outputs.major-minor }}
-            images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-amd64.outputs.major-minor }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push-amd64.outputs.major-minor }}-linux-arm64
-            push: true
+  create-images:
+    strategy:
+      matrix:
+        target:
+          - name: .#first
+            latest: false
+          - name: .#second
+            latest: false
+          - name: .#third
+            latest: true
+      fail-fast: true
+    uses: infastin/nixpkgs-k8s/.github/workflows/base.yml@master
+    with:
+      target: ${{ matrix.target.name }}
+      latest: ${{ matrix.target.latest }}

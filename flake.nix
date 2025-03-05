@@ -5,26 +5,38 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    let
-      kubernetesVersion = "1.32.2";
-    in
     {
       overlays = {
         default = final: prev: {
-          kubectl = prev.kubectl.overrideAttrs (oldAttrs: {
-            version = kubernetesVersion;
+          kubectl_1_30_10 = prev.kubectl.overrideAttrs (oldAttrs: rec {
+            version = "1.30.10";
             src = prev.fetchFromGitHub {
               owner = "kubernetes";
               repo = "kubernetes";
-              rev = "v${kubernetesVersion}";
-              hash = "sha256-pie36Y3zKGKvnCDHtjNHYox1b2xhy6w7MShkAfkDVrs=";
+              rev = "v${version}";
+              hash = "sha256-Zy2IoHyOLx1A2lr0o+DmjdhLIPQ4ePdT/+HeXwC2pTw=";
             };
           });
 
-          tmpDir = prev.runCommand "tmp" { } ''
-            mkdir $out
-            mkdir -m 1777 $out/tmp
-          '';
+          kubectl_1_31_6 = prev.kubectl.overrideAttrs (oldAttrs: rec {
+            version = "1.31.6";
+            src = prev.fetchFromGitHub {
+              owner = "kubernetes";
+              repo = "kubernetes";
+              rev = "v${version}";
+              hash = "sha256-WWw2rzhChICTsUlm3OmcxP/oZdhuiziPg/YJfNb0hJA=";
+            };
+          });
+
+          kubectl_1_32_2 = prev.kubectl.overrideAttrs (oldAttrs: rec {
+            version = "1.32.2";
+            src = prev.fetchFromGitHub {
+              owner = "kubernetes";
+              repo = "kubernetes";
+              rev = "v${version}";
+              hash = "sha256-pie36Y3zKGKvnCDHtjNHYox1b2xhy6w7MShkAfkDVrs=";
+            };
+          });
         };
       };
     } // flake-utils.lib.eachDefaultSystem (system:
@@ -36,29 +48,46 @@
           ];
         };
       in {
-        packages.default = pkgs.dockerTools.buildLayeredImage {
-          name = "ghcr.io/infastin/nixpkgs-k8s";
-          tag = kubernetesVersion;
-          created = "now";
-          contents = with pkgs; [
-            tmpDir
-            dockerTools.usrBinEnv
-            dockerTools.binSh
-            dockerTools.caCertificates
-            busybox
-            kubectl
-            curl
-            awscli2
-          ];
-          fakeRootCommands = ''
-            ${pkgs.dockerTools.shadowSetup}
-            mkdir -p /root
-            chmod 0550 /root
-          '';
-          enableFakechroot = true;
-          config = {
-            Cmd = [ "${pkgs.dockerTools.binSh}/bin/sh" ];
+        packages =
+          let
+            buildImage = { kubectl }:
+              pkgs.dockerTools.buildLayeredImage {
+                name = "ghcr.io/infastin/nixpkgs-k8s";
+                tag = kubectl.version;
+                created = "now";
+
+                contents = with pkgs; [
+                  dockerTools.usrBinEnv
+                  dockerTools.binSh
+                  dockerTools.caCertificates
+                  xz
+                  busybox
+                  curl
+                  awscli2
+                  jq
+                  yq-go
+                  gettext
+                  gomplate
+                ] ++ [
+                  kubectl
+                ];
+
+                fakeRootCommands = ''
+                  ${pkgs.dockerTools.shadowSetup}
+                  mkdir -m 0500 /root
+                  mkdir -p /var
+                  mkdir -m 1777 /tmp /var/tmp
+                '';
+                enableFakechroot = true;
+
+                config = {
+                  Cmd = [ "${pkgs.dockerTools.binSh}/bin/sh" ];
+                };
+              };
+          in {
+            first = buildImage { kubectl = pkgs.kubectl_1_30_10; };
+            second = buildImage { kubectl = pkgs.kubectl_1_31_6; };
+            third = buildImage { kubectl = pkgs.kubectl_1_32_2; };
           };
-        };
       });
 }
