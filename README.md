@@ -1,7 +1,8 @@
 # nixpkgs-k8s
 
 This repository contains Nix flake that produces
-a container with the following packages:
+images for the most recent three minor releases of kubernetes
+with the following packages:
 
 - xz
 - busybox
