@@ -55,9 +55,9 @@ jobs:
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
           # Push images
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${VERSION}-linux-amd64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:latest-linux-amd64
+          skopeo copy docker-archive:result docker://${IMAGE_NAME}:${VERSION}-linux-amd64
+          skopeo copy docker-archive:result docker://${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
+          skopeo copy docker-archive:result docker://${IMAGE_NAME}:latest-linux-amd64
 
   build-and-push-arm64:
     runs-on: ubuntu-24.04-arm
@@ -98,9 +98,9 @@ jobs:
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-arm64
 
           # Push images
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${VERSION}-linux-arm64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:latest-linux-arm64
+          skopeo copy docker-archive:result docker://${IMAGE_NAME}:${VERSION}-linux-arm64
+          skopeo copy docker-archive:result docker://${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
+          skopeo copy docker-archive:result docker://${IMAGE_NAME}:latest-linux-arm64
 
   push-manifest:
     runs-on: ubuntu-24.04
