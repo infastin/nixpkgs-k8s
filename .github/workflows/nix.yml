@@ -41,23 +41,29 @@ jobs:
         id: build-and-push
         run: |
           set -xeuo pipefail
-
+          
           # Build amd64 image
           nix build
 
           # Load image
-          IMAGE=$(skopeo list-tags docker-archive:result | jq -r ".Tags[0]")
-          VERSION=${IMAGE##*:}
+          LOAD_OUTPUT=$(mktemp)
+          docker load < result | tee ${LOAD_OUTPUT}
+          VERSION=$(sed -n -E "s|Loaded image: ${IMAGE_NAME//./\\.}:([a-z0-9.-]+)|\1|p" ${LOAD_OUTPUT})
           MAJOR_MINOR=$(echo ${VERSION} | awk -F'[.-]' '{print $1 "." $2}')
 
           # Save VERSION and MAJOR_MINOR
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
+          # Tag image
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-linux-amd64
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
+          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-amd64
+
           # Push images
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${VERSION}-linux-amd64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:latest-linux-amd64
+          docker push ${IMAGE_NAME}:${VERSION}-linux-amd64
+          docker push ${IMAGE_NAME}:${MAJOR_MINOR}-linux-amd64
+          docker push ${IMAGE_NAME}:latest-linux-amd64
 
   build-and-push-arm64:
     runs-on: ubuntu-24.04-arm
@@ -83,13 +89,14 @@ jobs:
         id: build-and-push
         run: |
           set -xeuo pipefail
-
+          
           # Build arm64 image
           nix build
 
           # Load image
-          IMAGE=$(skopeo list-tags docker-archive:result | jq -r ".Tags[0]")
-          VERSION=${IMAGE##*:}
+          LOAD_OUTPUT=$(mktemp)
+          docker load < result | tee ${LOAD_OUTPUT}
+          VERSION=$(sed -n -E "s|Loaded image: ${IMAGE_NAME//./\\.}:([a-z0-9.-]+)|\1|p" ${LOAD_OUTPUT})
           MAJOR_MINOR=$(echo ${VERSION} | awk -F'[.-]' '{print $1 "." $2}')
 
           # Tag image
@@ -98,9 +105,9 @@ jobs:
           docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-linux-arm64
 
           # Push images
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${VERSION}-linux-arm64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
-          skopeo copy docker-archive:result ${IMAGE_NAME}:latest-linux-arm64
+          docker push ${IMAGE_NAME}:${VERSION}-linux-arm64
+          docker push ${IMAGE_NAME}:${MAJOR_MINOR}-linux-arm64
+          docker push ${IMAGE_NAME}:latest-linux-arm64
 
   push-manifest:
     runs-on: ubuntu-24.04
