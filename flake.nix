@@ -60,6 +60,7 @@
                   dockerTools.usrBinEnv
                   dockerTools.binSh
                   dockerTools.caCertificates
+                  bashInteractive
                   xz
                   busybox
                   curl
@@ -81,7 +82,7 @@
                 enableFakechroot = true;
 
                 config = {
-                  Cmd = [ "${pkgs.dockerTools.binSh}/bin/sh" ];
+                  Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
                 };
               };
           in {
