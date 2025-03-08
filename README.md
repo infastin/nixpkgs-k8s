@@ -13,7 +13,6 @@ with the following packages:
 - yq-go
 - gettext
 - gomplate
-- nushell
 
 This repository was created to provide a container
 with basic utilities, for running inside kubernetes jobs.

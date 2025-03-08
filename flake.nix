@@ -69,7 +69,6 @@
                   yq-go
                   gettext
                   gomplate
-                  nushell
                 ] ++ [
                   kubectl
                 ];
