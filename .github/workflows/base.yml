@@ -51,7 +51,7 @@ jobs:
 
           # TODO: use skopio when it becomes available in arm runner
 
-          # Build amd64 image
+          # Build image
           nix build '${{ inputs.target }}'
 
           # Load image
