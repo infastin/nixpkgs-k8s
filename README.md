@@ -12,7 +12,6 @@ with the following packages:
 - jq
 - yq-go
 - gettext
-- gomplate
 
 This repository was created to provide a container
 with basic utilities, for running inside kubernetes jobs.

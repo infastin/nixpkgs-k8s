@@ -68,7 +68,6 @@
                   jq
                   yq-go
                   gettext
-                  gomplate
                 ] ++ [
                   kubectl
                 ];
