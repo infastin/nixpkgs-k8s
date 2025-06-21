@@ -94,21 +94,21 @@ jobs:
 
       - name: Create and push latest manifest image
         if: ${{ inputs.latest }}
-        uses: Noelware/docker-manifest-action@v1.0.0
+        uses: Noelware/docker-manifest-action@1.0.0
         with:
             inputs: ${{ env.IMAGE_NAME }}:latest
             tags: ${{ env.IMAGE_NAME }}:latest-linux-amd64,${{ env.IMAGE_NAME }}:latest-linux-arm64
             push: true
 
       - name: Create and push ${{ needs.build-and-push.outputs.version }} manifest image
-        uses: Noelware/docker-manifest-action@v1.0.0
+        uses: Noelware/docker-manifest-action@1.0.0
         with:
             inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}
             tags: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}-linux-arm64
             push: true
 
       - name: Create and push ${{ needs.build-and-push.outputs.major-minor }} manifest image
-        uses: Noelware/docker-manifest-action@v1.0.0
+        uses: Noelware/docker-manifest-action@1.0.0
         with:
             inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}
             tags: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}-linux-arm64
