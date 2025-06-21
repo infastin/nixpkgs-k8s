@@ -8,33 +8,33 @@
     {
       overlays = {
         default = final: prev: {
-          kubectl_1_30_10 = prev.kubectl.overrideAttrs (oldAttrs: rec {
-            version = "1.30.10";
+          kubectl_1_31_10 = prev.kubectl.overrideAttrs (oldAttrs: rec {
+            version = "1.31.10";
             src = prev.fetchFromGitHub {
               owner = "kubernetes";
               repo = "kubernetes";
               rev = "v${version}";
-              hash = "sha256-Zy2IoHyOLx1A2lr0o+DmjdhLIPQ4ePdT/+HeXwC2pTw=";
+              hash = "sha256-renFznJJLYvfIJn59yx9BeZ5HRtSIdtDXXIK2CEs4MU=";
             };
           });
 
-          kubectl_1_31_6 = prev.kubectl.overrideAttrs (oldAttrs: rec {
-            version = "1.31.6";
+          kubectl_1_32_6 = prev.kubectl.overrideAttrs (oldAttrs: rec {
+            version = "1.32.6";
             src = prev.fetchFromGitHub {
               owner = "kubernetes";
               repo = "kubernetes";
               rev = "v${version}";
-              hash = "sha256-WWw2rzhChICTsUlm3OmcxP/oZdhuiziPg/YJfNb0hJA=";
+              hash = "sha256-MCKYcum4rib7qzKyZ7YMMYYhSPqNF5a/D33d9REa8Eo=";
             };
           });
 
-          kubectl_1_32_2 = prev.kubectl.overrideAttrs (oldAttrs: rec {
-            version = "1.32.2";
+          kubectl_1_33_2 = prev.kubectl.overrideAttrs (oldAttrs: rec {
+            version = "1.33.2";
             src = prev.fetchFromGitHub {
               owner = "kubernetes";
               repo = "kubernetes";
               rev = "v${version}";
-              hash = "sha256-pie36Y3zKGKvnCDHtjNHYox1b2xhy6w7MShkAfkDVrs=";
+              hash = "sha256-Ef/tpjM5RGQzO8rZxTad23DuM6VLlV3N54LOu7dtc6A=";
             };
           });
         };
@@ -85,9 +85,9 @@
                 };
               };
           in {
-            first = buildImage { kubectl = pkgs.kubectl_1_30_10; };
-            second = buildImage { kubectl = pkgs.kubectl_1_31_6; };
-            third = buildImage { kubectl = pkgs.kubectl_1_32_2; };
+            first = buildImage { kubectl = pkgs.kubectl_1_31_10; };
+            second = buildImage { kubectl = pkgs.kubectl_1_32_6; };
+            third = buildImage { kubectl = pkgs.kubectl_1_33_2; };
           };
       });
 }
