@@ -47,17 +47,12 @@ jobs:
       - name: Build and push
         id: build-and-push
         run: |
-          set -xeuo pipefail
-
-          # TODO: use skopio when it becomes available in arm runner
-
           # Build image
-          nix build '${{ inputs.target }}'
+          nix build \${{ inputs.target }}
 
-          # Load image
-          LOAD_OUTPUT=$(mktemp)
-          docker load < result | tee ${LOAD_OUTPUT}
-          VERSION=$(sed -n -E "s|Loaded image: ${IMAGE_NAME//./\\.}:([a-z0-9.-]+)|\1|p" ${LOAD_OUTPUT})
+          # Load image info
+          IMAGE=$(skopeo list-tags docker-archive:result | jq -r ".Tags[0]")
+          VERSION=${IMAGE##*:}
           MAJOR_MINOR=$(echo ${VERSION} | awk -F'[.-]' '{print $1 "." $2}')
 
           # Save VERSION and MAJOR_MINOR
@@ -65,18 +60,9 @@ jobs:
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
           # Tag image
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
-          docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
-          if \${{ inputs.latest }}; then
-            docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
-          fi
-
-          # Push images
-          docker push ${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
-          docker push ${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
-          if \${{ inputs.latest }}; then
-            docker push ${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
-          fi
+          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:${VERSION}-${OS_ARCH}
+          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:${MAJOR_MINOR}-${OS_ARCH}
+          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:latest-${OS_ARCH}
 
   push-manifest:
     runs-on: ubuntu-24.04
@@ -85,6 +71,14 @@ jobs:
     permissions:
       packages: write
     steps:
+      - name: Install manifest-tool
+        run: |
+          git clone --branch v2.2.0 --depth=1 https://github.com/estesp/manifest-tool
+          make -C manifest-tool binary
+          sudo mkdir -p /usr/local/bin
+          sudo cp "${PWD}/manifest-tool/manifest-tool" /usr/local/bin
+          rm -rf manifest-tool
+
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v3
         with:
@@ -92,24 +86,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push latest manifest image
-        if: ${{ inputs.latest }}
-        uses: Noelware/docker-manifest-action@0.4.3
-        with:
-            inputs: ${{ env.IMAGE_NAME }}:latest
-            images: ${{ env.IMAGE_NAME }}:latest-linux-amd64,${{ env.IMAGE_NAME }}:latest-linux-arm64
-            push: true
+      - name: Create and push manifest images
+        run: |
+          if \${{ inputs.latest }}; then
+            manifest-tool push from-args \
+              --platforms linux/amd64,linux/arm64 \
+              --template ${IMAGE_NAME}:latest-OS-ARCH \
+              --target ${IMAGE_NAME}:latest
+          fi
 
-      - name: Create and push ${{ needs.build-and-push.outputs.version }} manifest image
-        uses: Noelware/docker-manifest-action@0.4.3
-        with:
-            inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}
-            images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}-linux-arm64
-            push: true
+          manifest-tool push from-args \
+            --platforms linux/amd64,linux/arm64 \
+            --template ${IMAGE_NAME}:\${{ needs.build-and-push.outputs.version }}-OS-ARCH \
+            --target ${IMAGE_NAME}:\${{ needs.build-and-push.outputs.version }}
 
-      - name: Create and push ${{ needs.build-and-push.outputs.major-minor }} manifest image
-        uses: Noelware/docker-manifest-action@0.4.3
-        with:
-            inputs: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}
-            images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}-linux-amd64,${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.major-minor }}-linux-arm64
-            push: true
+          manifest-tool push from-args \
+            --platforms linux/amd64,linux/arm64 \
+            --template ${IMAGE_NAME}:\${{ needs.build-and-push.outputs.major-minor }}-OS-ARCH \
+            --target ${IMAGE_NAME}:\${{ needs.build-and-push.outputs.major-minor }}
