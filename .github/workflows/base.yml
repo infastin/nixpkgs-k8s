@@ -60,9 +60,9 @@ jobs:
           echo "major-minor=${MAJOR_MINOR}" >> ${GITHUB_OUTPUT}
 
           # Tag image
-          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:${VERSION}-${OS_ARCH}
-          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:${MAJOR_MINOR}-${OS_ARCH}
-          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:latest-${OS_ARCH}
+          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:${VERSION}-\${{ matrix.arch.tag }}
+          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:${MAJOR_MINOR}-\${{ matrix.arch.tag }}
+          skopeo copy --retry-times=3 docker-archive:result docker://${IMAGE_NAME}:latest-\${{ matrix.arch.tag }}
 
   push-manifest:
     runs-on: ubuntu-24.04
