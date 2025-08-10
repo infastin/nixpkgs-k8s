@@ -52,20 +52,7 @@
           let
             mkImage = attrs:
               pkgs.callPackage ./docker.nix (attrs // {
-                bundleNixpkgs = false;
                 Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
-                nixConf = {
-                  accept-flake-config = "true";
-                  experimental-features = [ "nix-command" "flakes" ];
-                  substituters = [
-                    "https://nix-community.cachix.org"
-                    "https://cache.nixos.org"
-                  ];
-                  trusted-public-keys = [
-                    "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-                    "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-                  ];
-                };
               });
 
             buildImage = { kubectl }:
@@ -77,8 +64,6 @@
                 fromImage = mkImage {
                   extraPkgs = with pkgs; [
                     xz
-                    busybox
-                    curl
                     awscli2
                     jq
                     yq-go
